@@ -11,6 +11,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthContext";
+import { Spinner } from "../ui/spinner";
 
 const GoogleIcon = () => (
   <svg
@@ -118,7 +119,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           }`}
         >
           {loading ? (
-            "Processing..."
+            <Spinner className="w-5 h-5 text-[#427693]" />
           ) : (
             <>
               <GoogleIcon />
