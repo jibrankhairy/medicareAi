@@ -7,6 +7,11 @@ import AuthModal from "../auth/AuthModal";
 
 const Header = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const openModalWithSuccess = (message: string) => {
+    setSuccessMessage(message);
+    setIsModalOpen(true);
+  };
 
   return (
     <>
@@ -46,7 +51,12 @@ const Header = () => {
         </div>
       </header>
 
-      <AuthModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AuthModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onRegisterSuccess={openModalWithSuccess}
+        initialMessage={successMessage}
+      />
     </>
   );
 };

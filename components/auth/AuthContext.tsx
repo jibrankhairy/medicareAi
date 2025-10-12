@@ -13,6 +13,9 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -21,6 +24,12 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  registerWithEmail: (
+    email: string,
+    password: string,
+    name: string
+  ) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -30,7 +39,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const syncUserToDatabase = async (user: User) => {
+const syncUserToDatabase = async (user: User, name: string | null = null) => {
   if (!user.email) return;
 
   try {
@@ -42,7 +51,7 @@ const syncUserToDatabase = async (user: User) => {
       body: JSON.stringify({
         firebaseUid: user.uid,
         email: user.email,
-        name: user.displayName,
+        name: name || user.displayName,
       }),
     });
 
@@ -70,10 +79,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
-
-      if (currentUser && window.location.pathname === "/") {
-        router.push("/dashboard");
-      }
     });
 
     return () => unsubscribe();
@@ -89,8 +94,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await syncUserToDatabase(user);
 
       setUser(user);
+      router.push("/dashboard");
     } catch (error) {
       console.error("Google Sign In Error:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerWithEmail = async (
+    email: string,
+    password: string,
+    name: string
+  ) => {
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: name });
+
+      await syncUserToDatabase(user, name);
+    } catch (error) {
+      console.error("Email Registration Error:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      setUser(user);
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Email Sign In Error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -107,7 +158,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signInWithGoogle,
+        registerWithEmail,
+        signInWithEmail,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

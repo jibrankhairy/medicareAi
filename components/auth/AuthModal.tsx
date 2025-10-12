@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   User,
@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Spinner } from "../ui/spinner";
+import { getAuth } from "firebase/auth";
+import { app } from "@/lib/firebase";
 
 const GoogleIcon = () => (
   <svg
@@ -41,22 +43,42 @@ const GoogleIcon = () => (
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRegisterSuccess: (message: string) => void;
+  initialMessage: string | null;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  onRegisterSuccess,
+  initialMessage,
+}) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { signInWithGoogle, loading, user } = useAuth();
+  const { signInWithGoogle, signInWithEmail, registerWithEmail, loading } =
+    useAuth();
+
+  useEffect(() => {
+    if (initialMessage) {
+      setError(initialMessage);
+      setIsLogin(true);
+    }
+  }, [initialMessage]);
 
   if (!isOpen) return null;
 
   const toggleView = () => {
     setIsLogin(!isLogin);
     setError(null);
+    setEmail("");
+    setPassword("");
+    setName("");
+    setIsSubmitting(false);
   };
 
   const handleGoogleSignIn = async () => {
@@ -72,12 +94,44 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(
-      "Email/Password login is not yet implemented. Please use 'Sign in with Google'."
-    );
+    setError(null);
+    setIsSubmitting(true);
+
+    let submissionError = null;
+
+    try {
+      if (isLogin) {
+        await signInWithEmail(email, password);
+        onClose();
+      } else {
+        if (!name) throw new Error("Name is required for registration.");
+
+        await registerWithEmail(email, password, name);
+
+        const authInstance = getAuth(app);
+        await authInstance.signOut();
+
+        onRegisterSuccess(
+          "Registration successful! Please sign in with your new account."
+        );
+      }
+    } catch (err: any) {
+      const firebaseError = err.message
+        .replace("Firebase: ", "")
+        .replace(/\(auth.*\)\./, "")
+        .trim();
+
+      submissionError =
+        firebaseError || "An unexpected error occurred during authentication.";
+      setError(submissionError);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const isFormLoading = isSubmitting || loading;
 
   return (
     <div
@@ -106,33 +160,43 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+          <div
+            className={`mb-4 p-3 border rounded-lg text-sm ${
+              error.includes("successful")
+                ? "bg-green-100 border-green-400 text-green-700"
+                : "bg-red-100 border-red-400 text-red-700"
+            }`}
+          >
             {error}
           </div>
         )}
 
-        <button
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className={`flex items-center justify-center w-full py-2.5 mb-4 rounded-full border border-gray-300 text-[#3c4043] font-medium bg-white hover:bg-gray-50 transition-all duration-300 shadow-sm ${
-            loading ? "opacity-70 cursor-not-allowed" : ""
-          }`}
-        >
-          {loading ? (
-            <Spinner className="w-5 h-5 text-[#427693]" />
-          ) : (
-            <>
-              <GoogleIcon />
-              <span className="text-sm font-medium">Sign in with Google</span>
-            </>
-          )}
-        </button>
+        {isLogin && (
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={isFormLoading}
+            className={`flex items-center justify-center w-full py-2.5 mb-4 rounded-full border border-gray-300 text-[#3c4043] font-medium bg-white hover:bg-gray-50 transition-all duration-300 shadow-sm ${
+              isFormLoading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
+            {isFormLoading ? (
+              <Spinner className="w-5 h-5 text-[#427693]" />
+            ) : (
+              <>
+                <GoogleIcon />
+                <span className="text-sm font-medium">Sign in with Google</span>
+              </>
+            )}
+          </button>
+        )}
 
-        <div className="flex items-center my-4">
-          <div className="flex-grow border-t border-gray-300"></div>
-          <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
-          <div className="flex-grow border-t border-gray-300"></div>
-        </div>
+        {isLogin && (
+          <div className="flex items-center my-4">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
@@ -182,15 +246,26 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
           <button
             type="submit"
-            className="flex items-center justify-center w-full py-3 rounded-xl bg-[#427693] text-white font-semibold shadow-md hover:bg-[#31576d] transition-colors duration-300"
+            disabled={isSubmitting}
+            className={`flex items-center justify-center w-full py-3 rounded-xl text-white font-semibold shadow-md transition-colors duration-300 ${
+              isSubmitting
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#427693] hover:bg-[#31576d]"
+            }`}
           >
-            {isLogin ? (
-              <>
-                <LogIn size={20} className="mr-2" /> Sign In
-              </>
+            {isSubmitting ? (
+              <Spinner className="w-5 h-5 text-white" />
             ) : (
               <>
-                <UserPlus size={20} className="mr-2" /> Sign Up
+                {isLogin ? (
+                  <>
+                    <LogIn size={20} className="mr-2" /> Sign In
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={20} className="mr-2" /> Sign Up
+                  </>
+                )}
               </>
             )}
           </button>

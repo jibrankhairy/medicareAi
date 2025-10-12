@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 "use client";
 
 import React, { useEffect } from "react";
@@ -10,10 +9,8 @@ const DashboardPage = () => {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
-  // Redirect jika belum login dan tidak sedang loading
   useEffect(() => {
     if (!loading && !user) {
-      // Pastikan redirect ke '/' jika tidak login
       router.push("/");
     }
   }, [loading, user, router]);
