@@ -15,24 +15,24 @@ import { useAuth } from "@/components/auth/AuthContext";
 const GoogleIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 48 48"
+    viewBox="0 0 533.5 544.3"
     className="h-5 w-5 mr-3"
   >
     <path
-      fill="#FFC107"
-      d="M43.611,20.083H42V20H24v8h11.343c-1.897,4.357-6.666,9.136-11.343,9.136c-6.81,0-12.289-5.56-12.289-12.483  c0-6.923,5.479-12.484,12.289-12.484c3.136,0,5.732,1.258,7.399,2.775l5.52-5.267C37.892,4.86,32.65,2,24,2C11.851,2,2,11.851,2,24  s9.851,22,22,22c11.082,0,21-8.197,21-22C45.97,22.19,44.172,20.583,43.611,20.083z"
+      fill="#4285F4"
+      d="M533.5 278.4c0-17.4-1.5-34-4.3-50.2H272v95.1h147.3c-6.3 34.1-25.1 63.1-53.5 82.4v68h86.4c50.6-46.6 81.3-115.4 81.3-195.3z"
     />
     <path
-      fill="#FF3D00"
-      d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.774,1.189,7.766,3.066  l6.096-5.873C34.721,4.717,29.897,2,24,2C14.777,2,7.746,8.239,6.306,14.691z"
+      fill="#34A853"
+      d="M272 544.3c72.4 0 133.2-24 177.6-65.1l-86.4-68c-24 16.1-54.8 25.5-91.2 25.5-70 0-129.4-47.2-150.6-110.8H31.2v69.5C75.4 486.6 167.7 544.3 272 544.3z"
     />
     <path
-      fill="#4CAF50"
-      d="M24,46c5.566,0,10.648-2.227,14.127-5.912l-6.2-5.238C30.505,36.56,27.352,38,24,38  c-5.594,0-10.428-3.957-11.341-9.421l-6.205,4.33C6.444,40.457,14.757,46,24,46z"
+      fill="#FBBC05"
+      d="M121.4 325.9c-4.8-16.1-7.5-33.3-7.5-50.9s2.7-34.8 7.5-50.9V154.6H31.2C11.2 194.6 0 238.2 0 284.9s11.2 90.3 31.2 130.3l90.2-69.3z"
     />
     <path
-      fill="#1976D2"
-      d="M43.611,20.083H42V20H24v8h11.343c-0.655,3.318-3.329,6.486-6.096,8.75l6.2,5.238  C39.141,40.169,45.719,34.019,45.97,24C45.97,22.19,44.172,20.583,43.611,20.083z"
+      fill="#EA4335"
+      d="M272 107.7c39.5 0 74.7 13.6 102.5 40.3l76.3-76.3C405.2 24.1 344.4 0 272 0 167.7 0 75.4 57.7 31.2 154.6l90.2 69.5C142.6 154.9 202 107.7 272 107.7z"
     />
   </svg>
 );
@@ -112,11 +112,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         <button
           onClick={handleGoogleSignIn}
-          disabled={loading} // Disable saat loading
-          className={`flex items-center justify-center w-full py-3 mb-4 rounded-full border border-gray-300 text-gray-700 font-semibold transition-all duration-300 shadow-sm ${
-            loading
-              ? "bg-gray-200 cursor-not-allowed"
-              : "bg-white hover:bg-gray-50"
+          disabled={loading}
+          className={`flex items-center justify-center w-full py-2.5 mb-4 rounded-full border border-gray-300 text-[#3c4043] font-medium bg-white hover:bg-gray-50 transition-all duration-300 shadow-sm ${
+            loading ? "opacity-70 cursor-not-allowed" : ""
           }`}
         >
           {loading ? (
@@ -124,7 +122,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           ) : (
             <>
               <GoogleIcon />
-              {isLogin ? "Sign in with Google" : "Sign up with Google"}
+              <span className="text-sm font-medium">Sign in with Google</span>
             </>
           )}
         </button>
