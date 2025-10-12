@@ -1,0 +1,30 @@
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  firebaseUid String  @unique // ID dari Firebase Auth (Penting!)
+  email     String    @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Contoh: Data kesehatan user
+  healthData HealthRecord[]
+}
+
+model HealthRecord {
+  id        String    @id @default(uuid())
+  userId    String 
+  user      User      @relation(fields: [userId], references: [id])
+  type      String 
+  value     String 
+  timestamp DateTime @default(now())
+}
