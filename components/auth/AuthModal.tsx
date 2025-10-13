@@ -10,10 +10,10 @@ import {
   LogIn,
   UserPlus,
 } from "lucide-react";
-import { useAuth } from "@/components/auth/AuthContext";
-import { Spinner } from "../ui/spinner";
-import { getAuth } from "firebase/auth";
+import { useAuth } from "./AuthContext";
 import { app } from "@/lib/firebase";
+import { getAuth } from "firebase/auth";
+import { Spinner } from "../ui/spinner";
 
 const GoogleIcon = () => (
   <svg
@@ -40,12 +40,19 @@ const GoogleIcon = () => (
   </svg>
 );
 
-interface AuthModalProps {
+export interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRegisterSuccess: (message: string) => void;
+  initialMessage: string | null;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  onRegisterSuccess,
+  initialMessage,
+}) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,23 +60,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const { signInWithGoogle, signInWithEmail, registerWithEmail } = useAuth();
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setMessage(initialMessage);
       setError(null);
-      setSuccess(null);
+
+      if (initialMessage) {
+        setIsLogin(true);
+      }
+    } else {
+      setError(null);
+      setMessage(null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialMessage]);
 
   if (!isOpen) return null;
 
   const toggleView = () => {
     setIsLogin(!isLogin);
     setError(null);
-    setSuccess(null);
+    setMessage(null);
     setEmail("");
     setPassword("");
     setName("");
@@ -79,7 +93,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleGoogleSignIn = async () => {
     setError(null);
-    setSuccess(null);
+    setMessage(null);
     setIsGoogleSubmitting(true);
 
     try {
@@ -98,7 +112,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
+    setMessage(null);
     setIsSubmitting(true);
 
     let submissionError = null;
@@ -116,14 +130,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await authInstance.signOut();
 
         setIsLogin(true);
-        setSuccess(
+
+        setEmail("");
+        setPassword("");
+        setName("");
+
+        onRegisterSuccess(
           "Registration successful! Please sign in with your new account."
         );
       }
     } catch (err: any) {
       const firebaseError = err.message
         .replace("Firebase: ", "")
-        .replace(/\(auth.*\)\./, "")
+        .replace(/\(auth.*\)/, "")
         .trim();
 
       submissionError =
@@ -162,15 +181,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             : "Create your free account to start monitoring."}
         </p>
 
-        {(error || success) && (
+        {(error || message) && (
           <div
             className={`mb-4 p-3 border rounded-lg text-sm ${
-              success
+              message
                 ? "bg-green-100 border-green-400 text-green-700"
                 : "bg-red-100 border-red-400 text-red-700"
             }`}
           >
-            {error || success}
+            {error || message}
           </div>
         )}
 
