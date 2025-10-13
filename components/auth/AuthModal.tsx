@@ -43,46 +43,45 @@ const GoogleIcon = () => (
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegisterSuccess: (message: string) => void;
-  initialMessage: string | null;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({
-  isOpen,
-  onClose,
-  onRegisterSuccess,
-  initialMessage,
-}) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const { signInWithGoogle, signInWithEmail, registerWithEmail, loading } =
-    useAuth();
+  const { signInWithGoogle, signInWithEmail, registerWithEmail } = useAuth();
 
   useEffect(() => {
-    if (initialMessage) {
-      setError(initialMessage);
-      setIsLogin(true);
+    if (!isOpen) {
+      setError(null);
+      setSuccess(null);
     }
-  }, [initialMessage]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const toggleView = () => {
     setIsLogin(!isLogin);
     setError(null);
+    setSuccess(null);
     setEmail("");
     setPassword("");
     setName("");
     setIsSubmitting(false);
+    setIsGoogleSubmitting(false);
   };
 
   const handleGoogleSignIn = async () => {
     setError(null);
+    setSuccess(null);
+    setIsGoogleSubmitting(true);
+
     try {
       await signInWithGoogle();
       onClose();
@@ -91,12 +90,15 @@ const AuthModal: React.FC<AuthModalProps> = ({
         "Sign in failed. Check network or ensure Firebase setup is complete."
       );
       console.error("Google Sign-in failed in Modal:", err);
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setIsSubmitting(true);
 
     let submissionError = null;
@@ -113,7 +115,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
         const authInstance = getAuth(app);
         await authInstance.signOut();
 
-        onRegisterSuccess(
+        setIsLogin(true);
+        setSuccess(
           "Registration successful! Please sign in with your new account."
         );
       }
@@ -131,7 +134,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const isFormLoading = isSubmitting || loading;
+  const isFormLoading = isSubmitting || isGoogleSubmitting;
 
   return (
     <div
@@ -159,27 +162,27 @@ const AuthModal: React.FC<AuthModalProps> = ({
             : "Create your free account to start monitoring."}
         </p>
 
-        {error && (
+        {(error || success) && (
           <div
             className={`mb-4 p-3 border rounded-lg text-sm ${
-              error.includes("successful")
+              success
                 ? "bg-green-100 border-green-400 text-green-700"
                 : "bg-red-100 border-red-400 text-red-700"
             }`}
           >
-            {error}
+            {error || success}
           </div>
         )}
 
         {isLogin && (
           <button
             onClick={handleGoogleSignIn}
-            disabled={isFormLoading}
+            disabled={isGoogleSubmitting || isSubmitting}
             className={`flex items-center justify-center w-full py-2.5 mb-4 rounded-full border border-gray-300 text-[#3c4043] font-medium bg-white hover:bg-gray-50 transition-all duration-300 shadow-sm ${
-              isFormLoading ? "opacity-70 cursor-not-allowed" : ""
+              isGoogleSubmitting ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >
-            {isFormLoading ? (
+            {isGoogleSubmitting ? (
               <Spinner className="w-5 h-5 text-[#427693]" />
             ) : (
               <>
@@ -246,7 +249,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGoogleSubmitting}
             className={`flex items-center justify-center w-full py-3 rounded-xl text-white font-semibold shadow-md transition-colors duration-300 ${
               isSubmitting
                 ? "bg-gray-400 cursor-not-allowed"
