@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Menu } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { NAV_ITEMS } from "../../app/constants/NavData";
 import AuthModal from "../auth/AuthModal";
 
@@ -51,12 +52,19 @@ const Header = () => {
         </div>
       </header>
 
-      <AuthModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onRegisterSuccess={openModalWithSuccess}
-        initialMessage={successMessage}
-      />
+      <AnimatePresence mode="wait">
+        {isModalOpen && (
+          <AuthModal
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSuccessMessage(null);
+            }}
+            onRegisterSuccess={openModalWithSuccess}
+            initialMessage={successMessage}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

@@ -10,9 +10,10 @@ import {
   LogIn,
   UserPlus,
 } from "lucide-react";
+import { getAuth } from "firebase/auth";
+import { motion } from "framer-motion";
 import { useAuth } from "./AuthContext";
 import { app } from "@/lib/firebase";
-import { getAuth } from "firebase/auth";
 import { Spinner } from "../ui/spinner";
 
 const GoogleIcon = () => (
@@ -46,6 +47,38 @@ export interface AuthModalProps {
   onRegisterSuccess: (message: string) => void;
   initialMessage: string | null;
 }
+
+const dropIn = {
+  hidden: {
+    y: "-100vh",
+    opacity: 0,
+    scale: 0.8,
+  },
+  visible: {
+    y: "0",
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      type: "spring",
+      damping: 25,
+      stiffness: 500,
+    },
+  },
+  exit: {
+    y: "100vh",
+    opacity: 0,
+    scale: 0.8,
+    transition: {
+      duration: 0.3,
+    },
+  },
+} as const;
+
+const backdrop = {
+  visible: { opacity: 1 },
+  hidden: { opacity: 0 },
+} as const;
 
 const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
@@ -156,13 +189,21 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const isFormLoading = isSubmitting || isGoogleSubmitting;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 transition-opacity duration-300"
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      variants={backdrop}
     >
-      <div
-        className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl transform transition-all duration-300 scale-100"
+      <motion.div
+        className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        variants={dropIn}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
       >
         <button
           onClick={onClose}
@@ -196,7 +237,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
         {isLogin && (
           <button
             onClick={handleGoogleSignIn}
-            disabled={isGoogleSubmitting || isSubmitting}
+            disabled={isSubmitting || isGoogleSubmitting}
             className={`flex items-center justify-center w-full py-2.5 mb-4 rounded-full border border-gray-300 text-[#3c4043] font-medium bg-white hover:bg-gray-50 transition-all duration-300 shadow-sm ${
               isGoogleSubmitting ? "opacity-70 cursor-not-allowed" : ""
             }`}
@@ -311,8 +352,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
             )}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
