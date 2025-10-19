@@ -6,19 +6,27 @@ import {
   Heart,
   FileText,
   Activity,
-  Zap,
   User,
   Bot,
   AlertTriangle,
   Send,
 } from "lucide-react";
+import { onSnapshot, Firestore, Query, DocumentData } from "firebase/firestore";
+import {
+  initFirebase,
+  saveMessageToFirestore,
+  getChatQuery,
+} from "@/lib/firestoreSetup";
+import { getHealthAnalysis } from "@/lib/ai";
+
 import Sidebar from "./components/Sidebar";
 import ChatInput from "./components/ChatInput";
 
 interface Message {
-  id: number;
+  id: string;
   text: string;
   sender: "user" | "ai";
+  timestamp: Date;
 }
 
 const FEATURE_CARDS = [
@@ -59,7 +67,6 @@ const InfoCard: React.FC<InfoCardProps> = ({
     className="flex flex-col items-center justify-center p-6 bg-white rounded-xl text-center shadow-lg border border-gray-100 min-w-[200px] h-36 transition-all duration-300 cursor-default
                hover:shadow-2xl hover:border-purple-300 transform hover:scale-[1.02] active:scale-[1.01]"
   >
-    {/* Penambahan flex-shrink-0 untuk memastikan ikon tidak tersembunyi */}
     <Icon className="w-6 h-6 text-purple-600 mb-2 flex-shrink-0" />
     <p className="text-base font-semibold text-gray-800">{title}</p>
     <p className="text-xs text-gray-500 mt-1">{description}</p>
@@ -93,7 +100,14 @@ const ChatMessage = ({ message }: { message: Message }) => {
               : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
           }`}
         >
-          <p className="whitespace-pre-wrap text-sm">{message.text}</p>
+          <div
+            className="whitespace-pre-wrap text-sm"
+            dangerouslySetInnerHTML={{
+              __html: message.text
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\n/g, "<br/>"),
+            }}
+          />
         </div>
       </div>
     </div>
@@ -101,6 +115,8 @@ const ChatMessage = ({ message }: { message: Message }) => {
 };
 
 const DashboardPage = () => {
+  const [db, setDb] = useState<Firestore | null>(null);
+  const [userId, setUserId] = useState<string>("loading");
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -110,49 +126,96 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
+    initFirebase()
+      .then((result) => {
+        setDb(result.db);
+        setUserId(result.userId);
+      })
+      .catch((e) => {
+        console.error("Fatal Firebase Init Error:", e);
+        setUserId("auth-failed");
+      });
+  }, []);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    if (
+      db &&
+      userId &&
+      userId !== "loading" &&
+      userId.startsWith("auth-failed") === false
+    ) {
+      try {
+        const q: Query<DocumentData> = getChatQuery(db, userId);
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const newMessages: Message[] = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              text: data.text || "Pesan kosong",
+              sender: data.sender,
+              timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
+            };
+          });
+          setChatHistory(newMessages);
+        });
+      } catch (e) {
+        console.error("Error setting up Firestore listener:", e);
+      }
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [db, userId]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [chatHistory]);
 
-  const handleSendMessage = (text: string) => {
-    if (!text.trim() || isThinking) return;
+  const handleSendMessage = async (text: string) => {
+    if (
+      !text.trim() ||
+      isThinking ||
+      !db ||
+      userId === "loading" ||
+      userId.startsWith("auth-failed")
+    ) {
+      console.warn("Cannot send message: DB/User ID not ready or thinking.");
+      return;
+    }
 
-    const newUserMessage: Message = {
-      id: Date.now(),
+    // 1. Simpan pesan User ke Firestore
+    const userMessagePromise = saveMessageToFirestore(db, userId, {
       text,
       sender: "user",
-    };
+    });
 
-    setChatHistory((prev) => [...prev, newUserMessage]);
     setIsThinking(true);
 
-    const mockAIResponse = `
-        Baik, saya akan menganalisis data Anda berdasarkan input: "${text}".
+    try {
+      await userMessagePromise;
 
-        **[SIMULASI DIAGNOSA & ANALISIS AI]**
+      const aiResponseText = await getHealthAnalysis(text);
 
-        Berdasarkan data yang Anda masukkan, berikut analisis kesehatan Anda:
-        
-        * **Gula Darah:** 120 mg/dL (Normal).
-        * **Kolesterol:** 200 mg/dL (Batas Normal Tinggi).
-        * **Asam Urat:** 6.5 mg/dL (Hampir tinggi, perhatikan diet purin).
-        * **Tekanan Darah:** 120/80 mmHg (Optimal).
-
-        **Rekomendasi AI:**
-        Fokus utama Anda saat ini adalah **menurunkan Kolesterol Total** dan menjaga kadar Asam Urat. 
-        1. **Diet:** Kurangi makanan tinggi lemak jenuh. Perbanyak asupan serat.
-        2. **Aktivitas:** Minimal 30 menit olahraga ringan setiap hari.
-        3. **Tindak Lanjut:** Input data lagi dalam 1 minggu untuk melihat tren.
-        `;
-
-    setTimeout(() => {
-      const newAIMessage: Message = {
-        id: Date.now() + 1,
-        text: mockAIResponse.trim(),
+      await saveMessageToFirestore(db, userId, {
+        text: aiResponseText,
         sender: "ai",
-      };
-      setChatHistory((prev) => [...prev, newAIMessage]);
+      });
+    } catch (error) {
+      console.error("AI Analysis/Firestore Save failed:", error);
+
+      await saveMessageToFirestore(db, userId, {
+        text: "Maaf, terjadi kesalahan saat memproses permintaan Anda. (Cek koneksi AI/Firestore).",
+        sender: "ai",
+      });
+    } finally {
       setIsThinking(false);
-    }, 2000);
+    }
   };
 
   const ThinkingIndicator = () => (
@@ -163,6 +226,24 @@ const DashboardPage = () => {
   );
 
   const isHomeView = chatHistory.length === 0;
+
+  if (userId === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center text-lg">
+        Memuat layanan Medicare...
+      </div>
+    );
+  }
+
+  if (userId.startsWith("auth-failed") || !db) {
+    return (
+      <div className="flex h-screen items-center justify-center text-lg text-red-600 p-10 text-center">
+        <AlertTriangle className="w-6 h-6 mr-2" />
+        Gagal menyambung ke layanan database dan autentikasi. Pastikan Anda
+        sudah mengaktifkan Firestore di konsol Firebase.
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
