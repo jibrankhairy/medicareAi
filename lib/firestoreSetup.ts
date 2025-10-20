@@ -15,6 +15,10 @@ import {
   query,
   orderBy,
   DocumentData,
+  doc,
+  setDoc,
+  getDocs,
+  limit,
 } from "firebase/firestore";
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 
@@ -27,7 +31,7 @@ let authInstance: Auth | null = null;
 let currentUserId: string = "loading";
 let currentAppId: string = "default-app-id";
 
-export const initFirebase = async () => {
+const initFirebaseFunction = async () => {
   const isCanvasReady = typeof __firebase_config !== "undefined";
 
   try {
@@ -99,16 +103,29 @@ export const initFirebase = async () => {
   };
 };
 
-export const getChatCollectionRef = (db: Firestore, userId: string) => {
+export const getMessageCollectionRef = (
+  db: Firestore,
+  userId: string,
+  sessionId: string
+) => {
   const currentAppId =
     typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-  const path = `artifacts/${currentAppId}/users/${userId}/chat_history`;
-  return collection(db, path);
+  return collection(
+    db,
+    `artifacts/${currentAppId}/users/${userId}/sessions/${sessionId}/messages`
+  );
+};
+
+export const getSessionsCollectionRef = (db: Firestore, userId: string) => {
+  const currentAppId =
+    typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+  return collection(db, `artifacts/${currentAppId}/users/${userId}/sessions`);
 };
 
 export const saveMessageToFirestore = async (
   db: Firestore | null,
   userId: string,
+  sessionId: string,
   message: { text: string; sender: "user" | "ai" }
 ) => {
   try {
@@ -116,11 +133,29 @@ export const saveMessageToFirestore = async (
       console.error("Firestore DB is not initialized. Cannot save message.");
       return;
     }
-    const chatRef = getChatCollectionRef(db, userId);
+
+    const chatRef = getMessageCollectionRef(db, userId, sessionId);
     await addDoc(chatRef, {
       ...message,
       timestamp: serverTimestamp(),
     });
+
+    const sessionRef = getSessionsCollectionRef(db, userId);
+    const sessionDocRef = doc(sessionRef, sessionId);
+
+    const isUserMessage = message.sender === "user";
+
+    const sessionData = {
+      userId: userId,
+      lastActivity: serverTimestamp(),
+      title: isUserMessage
+        ? message.text.substring(0, 30) +
+          (message.text.length > 30 ? "..." : "")
+        : "New Session",
+      createdAt: serverTimestamp(),
+    };
+
+    await setDoc(sessionDocRef, sessionData, { merge: true });
   } catch (error) {
     console.error("Error saving message to Firestore:", error);
   }
@@ -128,10 +163,24 @@ export const saveMessageToFirestore = async (
 
 export const getChatQuery = (
   db: Firestore,
-  userId: string
+  userId: string,
+  sessionId: string
 ): Query<DocumentData> => {
-  const chatRef = getChatCollectionRef(db, userId);
+  const chatRef = getMessageCollectionRef(db, userId, sessionId);
   return query(chatRef, orderBy("timestamp", "asc"));
 };
 
-export { initFirebase as initCanvasFirebase };
+export const getHistorySessions = async (db: Firestore, userId: string) => {
+  if (!db) return [];
+  const sessionsRef = getSessionsCollectionRef(db, userId);
+  const q = query(sessionsRef, orderBy("lastActivity", "desc"), limit(10));
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    title: doc.data().title || "Untitled Chat",
+  }));
+};
+
+export { initFirebaseFunction as initFirebase };

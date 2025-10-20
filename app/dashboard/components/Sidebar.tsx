@@ -10,12 +10,22 @@ import {
   BarChart2,
   Settings,
   Plus,
-  CircleUser,
-  LogOut,
+  Clock,
 } from "lucide-react";
 
+interface ChatSession {
+  id: string;
+  title: string;
+}
+
+interface SidebarProps {
+  startNewChat: () => void;
+  loadChatSession: (id: string) => void;
+  sessions: ChatSession[];
+  currentSessionId: string;
+}
+
 const MAIN_NAV = [
-  { name: "Home", icon: Home, current: false },
   { name: "Prodify AI", icon: Zap, current: true, bold: true },
   { name: "My Tasks", icon: CheckSquare, current: false },
   { name: "Inbox", icon: Mail, current: false },
@@ -23,16 +33,18 @@ const MAIN_NAV = [
   { name: "Reports & Analytics", icon: BarChart2, current: false },
 ];
 
-const PROJECTS = [
-  { name: "Product launch", color: "text-purple-600" },
-  { name: "Team brainstorm", color: "text-blue-600" },
-  { name: "Branding launch", color: "text-green-600" },
-];
-
-const Sidebar = () => {
+const Sidebar: React.FC<SidebarProps> = ({
+  startNewChat,
+  sessions,
+  loadChatSession,
+  currentSessionId,
+}) => {
   const NavItem = ({ item }: { item: (typeof MAIN_NAV)[0] }) => (
     <a
       href="#"
+      onClick={(e) => {
+        e.preventDefault();
+      }}
       className={`flex items-center p-2 rounded-lg transition-colors group ${
         item.current
           ? "text-gray-900 bg-gray-100 font-semibold"
@@ -50,14 +62,42 @@ const Sidebar = () => {
     </a>
   );
 
+  const HistoryItem = ({ session }: { session: ChatSession }) => {
+    const isCurrent = session.id === currentSessionId;
+
+    return (
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          loadChatSession(session.id);
+        }}
+        className={`flex items-center p-2 rounded-lg text-sm transition-colors group ${
+          isCurrent
+            ? "text-purple-700 bg-purple-100 font-medium"
+            : "text-gray-800 hover:bg-gray-100"
+        }`}
+      >
+        <Clock
+          className={`w-4 h-4 mr-3 ${
+            isCurrent ? "text-purple-600" : "text-gray-400"
+          }`}
+        />
+        <span className="flex-1 whitespace-nowrap truncate">
+          {session.title}
+        </span>
+      </a>
+    );
+  };
+
   return (
     <div className="flex flex-col w-60 h-full bg-white px-3 py-4 shadow-2xl shadow-gray-100/50">
       <div className="flex items-center p-2 mb-6 cursor-pointer">
         <div className="relative">
           <img
             className="w-8 h-8 rounded-full mr-3 object-cover"
-            src="/path-to-your-avatar.jpg"
-            alt="Courtney Henry avatar"
+            src="https://placehold.co/150x150/7864ff/ffffff?text=C"
+            alt="User avatar"
           />
           <div className="absolute bottom-0 right-2 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
         </div>
@@ -70,48 +110,39 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <nav className="space-y-1">
+      <div className="mb-4">
+        <button
+          onClick={startNewChat}
+          className="w-full flex items-center px-4 py-2 text-sm font-bold text-white transition-colors 
+                       bg-gray-900 hover:bg-gray-800 shadow-md rounded-full"
+        >
+          <Plus className="w-4 h-4 mr-3 text-white" />
+          New Chat
+        </button>
+      </div>
+
+      <nav className="space-y-1 mb-6 border-b pb-4 border-gray-100">
         {MAIN_NAV.map((item) => (
           <NavItem key={item.name} item={item} />
         ))}
       </nav>
 
-      <div className="my-6 border-t border-gray-100"></div>
-
-      <div className="mb-auto">
-        <div className="flex justify-between items-center px-2 mb-2">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            My Projects
-          </span>
-          <button className="text-sm font-medium text-gray-500 hover:text-gray-900 flex items-center">
-            <Plus className="w-4 h-4 mr-1 text-gray-400" />
-            <span className="text-xs text-blue-600 font-semibold">+ Add</span>
-          </button>
-        </div>
-
-        <nav className="space-y-2 pt-1">
-          {PROJECTS.map((project) => (
-            <a
-              key={project.name}
-              href="#"
-              className="flex items-center p-2 rounded-lg text-sm text-gray-800 hover:bg-gray-50 transition-colors"
-            >
-              <span
-                className={`w-2 h-2 rounded-full mr-3 ${project.color}`}
-                style={{
-                  backgroundColor: project.color
-                    .replace("text-", "")
-                    .replace("-600", "")
-                    .replace("-500", ""),
-                }}
-              ></span>
-              <span className="flex-1 whitespace-nowrap">{project.name}</span>
-            </a>
-          ))}
+      <div className="flex-1 overflow-y-auto">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 block mb-2">
+          History ({sessions.length})
+        </span>
+        <nav className="space-y-1">
+          {sessions.length > 0 ? (
+            sessions.map((session) => (
+              <HistoryItem key={session.id} session={session} />
+            ))
+          ) : (
+            <p className="text-xs text-gray-400 px-2">No previous chats.</p>
+          )}
         </nav>
       </div>
 
-      <div className="mt-auto pt-4 space-y-4">
+      <div className="mt-auto pt-4 space-y-4 border-t border-gray-100">
         <div className="flex items-center p-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
           <Settings className="w-5 h-5 mr-3 text-gray-400" />
           <span className="font-medium">Settings</span>
