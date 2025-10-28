@@ -20,6 +20,8 @@ import {
 import Sidebar from "./components/Sidebar";
 import ChatInput from "./components/ChatInput";
 
+const BASE_COLOR = "#427693";
+
 const FEATURE_CARDS = [
   {
     title: "Input Data Harian",
@@ -55,10 +57,18 @@ const InfoCard: React.FC<InfoCardProps> = ({
   icon: Icon,
 }) => (
   <div
-    className="flex flex-col items-center justify-center p-6 bg-white rounded-xl text-center shadow-lg border border-gray-100 min-w-[200px] h-36 transition-all duration-300 cursor-default
-               hover:shadow-2xl hover:border-purple-300 transform hover:scale-[1.02] active:scale-[1.01]"
+    className="flex flex-col items-center justify-center p-6 bg-white rounded-xl text-center shadow-lg border border-gray-100 min-w-[200px] h-36 transition-all duration-300 cursor-default hover:shadow-2xl transform hover:scale-[1.02] active:scale-[1.01]"
+    onMouseEnter={(e) => {
+      e.currentTarget.style.borderColor = BASE_COLOR;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.borderColor = "rgb(209 213 219)";
+    }}
   >
-    <Icon className="w-6 h-6 text-purple-600 mb-2 flex-shrink-0" />
+    <Icon
+      className="w-6 h-6 mb-2 flex-shrink-0"
+      style={{ color: BASE_COLOR }}
+    />
     <p className="text-base font-semibold text-gray-800">{title}</p>
     <p className="text-xs text-gray-500 mt-1">{description}</p>
   </div>
@@ -74,9 +84,10 @@ const ChatMessage = ({ message }: { message: Message }) => {
         }`}
       >
         <div
-          className={`p-2 rounded-full ${
-            isUser ? "bg-purple-600" : "bg-gray-200"
-          } ${isUser ? "ml-3" : "mr-3"}`}
+          className={`p-2 rounded-full ${isUser ? "" : "bg-gray-200"} ${
+            isUser ? "ml-3" : "mr-3"
+          }`}
+          style={isUser ? { backgroundColor: BASE_COLOR } : {}}
         >
           {isUser ? (
             <User className="w-5 h-5 text-white" />
@@ -87,9 +98,10 @@ const ChatMessage = ({ message }: { message: Message }) => {
         <div
           className={`p-4 rounded-xl shadow-md ${
             isUser
-              ? "bg-purple-500 text-white rounded-tr-none"
+              ? "text-white rounded-tr-none"
               : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
           }`}
+          style={isUser ? { backgroundColor: BASE_COLOR } : {}}
         >
           <div
             className="whitespace-pre-wrap text-sm"
@@ -121,7 +133,10 @@ const DashboardPage = () => {
 
   const ThinkingIndicator = () => (
     <div className="flex items-center text-gray-500 text-sm italic mb-6 ml-14">
-      <Bot className="w-5 h-5 mr-2 animate-pulse text-purple-500" />
+      <Bot
+        className="w-5 h-5 mr-2 animate-pulse"
+        style={{ color: BASE_COLOR }}
+      />
       AI sedang menganalisis data...
     </div>
   );

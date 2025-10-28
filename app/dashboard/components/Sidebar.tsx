@@ -2,7 +2,6 @@
 
 import React from "react";
 import {
-  Home,
   Zap,
   CheckSquare,
   Mail,
@@ -12,6 +11,9 @@ import {
   Plus,
   Clock,
 } from "lucide-react";
+
+const BASE_COLOR = "#427693";
+const LIGHT_BG_COLOR = "#e9f0f4";
 
 interface ChatSession {
   id: string;
@@ -47,9 +49,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       }}
       className={`flex items-center p-2 rounded-lg transition-colors group ${
         item.current
-          ? "text-gray-900 bg-gray-100 font-semibold"
+          ? "bg-gray-100 font-semibold"
           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
       }`}
+      style={item.current ? { color: BASE_COLOR } : {}}
     >
       <item.icon className="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-600" />
       <span
@@ -73,16 +76,18 @@ const Sidebar: React.FC<SidebarProps> = ({
           loadChatSession(session.id);
         }}
         className={`flex items-center p-2 rounded-lg text-sm transition-colors group ${
-          isCurrent
-            ? "text-purple-700 bg-purple-100 font-medium"
-            : "text-gray-800 hover:bg-gray-100"
+          isCurrent ? "font-medium" : "text-gray-800 hover:bg-gray-100"
         }`}
+        style={
+          isCurrent
+            ? { color: BASE_COLOR, backgroundColor: LIGHT_BG_COLOR }
+            : {}
+        }
       >
         <Clock
-          className={`w-4 h-4 mr-3 ${
-            isCurrent ? "text-purple-600" : "text-gray-400"
-          }`}
-        />
+          className={`w-4 h-4 mr-3`}
+          style={{ color: isCurrent ? BASE_COLOR : "rgb(156 163 175)" }}
+        />{" "}
         <span className="flex-1 whitespace-nowrap truncate">
           {session.title}
         </span>
@@ -114,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={startNewChat}
           className="w-full flex items-center px-4 py-2 text-sm font-bold text-white transition-colors 
-                       bg-gray-900 hover:bg-gray-800 shadow-md rounded-full"
+                       bg-[#427693] hover:bg-[#31576d] shadow-md rounded-full"
         >
           <Plus className="w-4 h-4 mr-3 text-white" />
           New Chat
@@ -143,14 +148,23 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="mt-auto pt-4 space-y-4 border-t border-gray-100">
-        <div className="flex items-center p-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-          <Settings className="w-5 h-5 mr-3 text-gray-400" />
+        <div
+          className="flex items-center p-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          style={{ color: BASE_COLOR }}
+        >
+          <Settings className="w-5 h-5 mr-3" style={{ color: BASE_COLOR }} />{" "}
           <span className="font-medium">Settings</span>
         </div>
 
-        <div className="p-3 rounded-xl" style={{ backgroundColor: "#f0f3ff" }}>
+        <div
+          className="p-3 rounded-xl"
+          style={{ backgroundColor: LIGHT_BG_COLOR }}
+        >
           <div className="flex items-center mb-2">
-            <div className="p-1 rounded-full bg-purple-600">
+            <div
+              className="p-1 rounded-full"
+              style={{ backgroundColor: BASE_COLOR }}
+            >
               <Zap className="w-4 h-4 text-white" />
             </div>
             <span className="ml-2 font-semibold text-sm text-gray-900">
@@ -162,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </p>
           <button
             className="w-full text-center py-2 px-3 rounded-lg text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: "#4c6fff" }}
+            style={{ backgroundColor: BASE_COLOR }}
           >
             + Invite people
           </button>
