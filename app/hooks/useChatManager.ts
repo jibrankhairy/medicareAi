@@ -33,6 +33,30 @@ interface ChatManagerHook {
   handleSendMessage: (text: string) => Promise<void>;
 }
 
+export const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 11) return "Good Morning";
+  if (hour < 15) return "Good Afternoon";
+  if (hour < 19) return "Good Evening";
+  return "Good Evening";
+};
+
+export const extractFirstName = (name: string | null | undefined): string => {
+  if (!name) return "User";
+
+  let rawName = name.trim();
+
+  if (rawName.includes("@")) {
+    rawName = rawName.split("@")[0] || "User";
+  }
+
+  const segments = rawName.split(/[ ._-]/).filter((s) => s.length > 0);
+
+  let firstName = segments[0] || "User";
+
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+};
+
 export const useChatManager = (): ChatManagerHook => {
   const [db, setDb] = useState<Firestore | null>(null);
   const [userId, setUserId] = useState<string>("loading");

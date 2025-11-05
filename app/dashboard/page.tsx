@@ -1,78 +1,19 @@
 "use client";
 
 import React from "react";
-import {
-  Stethoscope,
-  Heart,
-  FileText,
-  Activity,
-  User,
-  Bot,
-  AlertTriangle,
-} from "lucide-react";
-
+import { User, Bot, AlertTriangle } from "lucide-react";
 import {
   useChatManager,
   Message,
   ChatSession,
+  getGreeting,
+  extractFirstName,
 } from "@/app/hooks/useChatManager";
-
 import Sidebar from "./components/Sidebar";
 import ChatInput from "./components/ChatInput";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const BASE_COLOR = "#427693";
-
-const FEATURE_CARDS = [
-  {
-    title: "Input Data Harian",
-    icon: FileText,
-    description: "Catat hasil lab (Gula, Kolesterol, Asam Urat, dll.)",
-  },
-  {
-    title: "Diagnosa & Rekomendasi",
-    icon: Stethoscope,
-    description: "Dapatkan diagnosa awal dan rekomendasi AI.",
-  },
-  {
-    title: "Analisis Kesehatan AI",
-    icon: Activity,
-    description: "Lihat tren dan pola data kesehatanmu.",
-  },
-  {
-    title: "Ringkasan Riwayat",
-    icon: Heart,
-    description: "Lihat rangkuman status kesehatanmu.",
-  },
-];
-
-interface InfoCardProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-}
-
-const InfoCard: React.FC<InfoCardProps> = ({
-  title,
-  description,
-  icon: Icon,
-}) => (
-  <div
-    className="flex flex-col items-center justify-center p-6 bg-white rounded-xl text-center shadow-lg border border-gray-100 min-w-[200px] h-36 transition-all duration-300 cursor-default hover:shadow-2xl transform hover:scale-[1.02] active:scale-[1.01]"
-    onMouseEnter={(e) => {
-      e.currentTarget.style.borderColor = BASE_COLOR;
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.borderColor = "rgb(209 213 219)";
-    }}
-  >
-    <Icon
-      className="w-6 h-6 mb-2 flex-shrink-0"
-      style={{ color: BASE_COLOR }}
-    />
-    <p className="text-base font-semibold text-gray-800">{title}</p>
-    <p className="text-xs text-gray-500 mt-1">{description}</p>
-  </div>
-);
 
 const ChatMessage = ({ message }: { message: Message }) => {
   const isUser = message.sender === "user";
@@ -131,6 +72,12 @@ const DashboardPage = () => {
     handleSendMessage,
   } = useChatManager();
 
+  const { user } = useAuth();
+  const rawUserName = user?.displayName || user?.email;
+
+  const userName = extractFirstName(rawUserName);
+  const greeting = getGreeting();
+
   const ThinkingIndicator = () => (
     <div className="flex items-center text-gray-500 text-sm italic mb-6 ml-14">
       <Bot
@@ -177,25 +124,12 @@ const DashboardPage = () => {
               }`}
             >
               {isHomeView ? (
-                <div className="flex flex-col items-center pt-10 pb-40 w-full max-w-6xl mx-auto">
+                <div className="flex flex-col items-center pt-20 pb-40 w-full max-w-6xl mx-auto">
                   <div className="text-center mb-16">
-                    <h1 className="text-3xl font-extrabold text-gray-800 mb-2">
-                      MEDICARE AI Assistant
+                    <h1 className="text-5xl font-bold text-gray-800 mb-4">
+                      {greeting}, {userName}
                     </h1>
-                    <p className="text-lg text-gray-500">
-                      Ketik data pemeriksaan Anda untuk memulai diagnosis.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
-                    {FEATURE_CARDS.map((card) => (
-                      <InfoCard
-                        key={card.title}
-                        title={card.title}
-                        description={card.description}
-                        icon={card.icon}
-                      />
-                    ))}
+                    <p className="text-xl text-gray-600">How can I help you?</p>
                   </div>
                 </div>
               ) : (
